@@ -1,5 +1,6 @@
 const express = require('express');
 const pool = require('../db/pool');
+const bcrypt = require('bcrypt');
 
 const router = express.Router();
 
@@ -14,9 +15,11 @@ router
     .post( async (req,res) => {
         try {
             const {username, password} = req.body;
+            passwordHash = await bcrypt.hash(password,8);
+            console.log(username, passwordHash);
             const newInsert = await pool.query(
                 "INSERT INTO users (username, password) VALUES ($1, $2) RETURNING *;",
-                [username, password]
+                [username, passwordHash]
             );
             res.json(newInsert.rows[0]);
         } catch (err) {
@@ -29,18 +32,28 @@ router
     .post( async (req,res) => {
         try {
             const {username, password} = req.body;
-            const select = await pool.query(
+            const user = await pool.query(
                 "SELECT * FROM users WHERE username = $1;", 
                 [username]
             );
-            if (select.rowCount) {
-                if (password == select.rows[0].password) {
-                    res.send("You're logged in");
+            if (user.rowCount) {
+                const isMatch = await bcrypt.compare(password, user.rows[0].password);
+                if (isMatch) {
+                    res.json({
+                        loggedIn: true,
+                        username
+                    });
                 } else {
-                    res.send("Wrong username/password");
+                    res.json({
+                        loggedIn: false,
+                        message: "Wrong username/password combo!"
+                    });
                 };
             } else {
-                res.send("User doesn't exist");
+                    res.json({
+                        loggedIn: false,
+                        message: "User doesn't exist"
+                    });
             };
         } catch (err) {
             console.error(err.message);
