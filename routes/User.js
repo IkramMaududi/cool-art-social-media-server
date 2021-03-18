@@ -1,8 +1,19 @@
 const express = require('express');
+const bcrypt = require('bcryptjs');
+const sharp = require('sharp');
+// const multer = require('multer');
 const pool = require('../db/pool');
-const bcrypt = require('bcrypt');
 
 const router = express.Router();
+// const upLoad = multer({
+//     limits: { fileSize: 2000000 },
+//     fileFilter(req, file, cb) {
+//         if (!file.originalname.match(/\.(jpg|jpeg|png)$/)) {
+//             return cb(new Error('Please upload an image with png, jpg, or jpeg file extensions'));
+//         };
+//         cb(null, true);
+//     }
+// });
 
 router
     .route('/')
@@ -23,7 +34,7 @@ router
             );
             res.json(newInsert.rows[0]);
         } catch (err) {
-            console.error(err.message);
+            res.status(400).send({ error: err.message });
         };
     });
 
@@ -57,6 +68,43 @@ router
             };
         } catch (err) {
             console.error(err.message);
+        };
+    });
+
+    // need to add foreign key in DB: userID
+router
+    .route('/upload')
+    .post( async (req,res) => {
+        try {
+            console.log(req.body.image);
+            // const {image, title, author, description} = req.body;
+            // const imageMod = await sharp(image).resize({ width: 800, height: 800 }).png().toBuffer();
+            // const newInsert = await pool.query(
+            //     "INSERT INTO imagework (image, title, author, description) VALUES ($1, $2, $3, $4) RETURNING *;",
+            //     [imageMod, title, author, description]
+            // );
+            // res.json(newInsert.rows[0]);
+        } catch (err) {
+            res.status(400).send({ error: err.message });
+        };
+    });
+
+    // need to add foreign key in DB: userID
+router
+    .route('/download')
+    .get( async (req,res) => {
+        try {
+            // const findAll = await pool.query( "SELECT * FROM imagework WHERE ;" );
+            const findAll = await pool.query( "SELECT * FROM imagework;" );
+            if (findAll.rowCount) {
+                res.json(findAll.rows);
+            } else {
+                res.json({
+                    message: 'Image not found'
+                });
+            };
+        } catch (err) {
+            res.status(400).send({ error: err.message });
         };
     });
 
