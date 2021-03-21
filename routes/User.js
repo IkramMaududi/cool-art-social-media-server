@@ -1,19 +1,10 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const sharp = require('sharp');
-// const multer = require('multer');
+const multer = require('multer');
 const pool = require('../db/pool');
 
 const router = express.Router();
-// const upLoad = multer({
-//     limits: { fileSize: 2000000 },
-//     fileFilter(req, file, cb) {
-//         if (!file.originalname.match(/\.(jpg|jpeg|png)$/)) {
-//             return cb(new Error('Please upload an image with png, jpg, or jpeg file extensions'));
-//         };
-//         cb(null, true);
-//     }
-// });
 
 router
     .route('/')
@@ -32,7 +23,11 @@ router
                 "INSERT INTO users (username, password) VALUES ($1, $2) RETURNING *;",
                 [username, passwordHash]
             );
-            res.json(newInsert.rows[0]);
+            // console.log(newInsert.rows[0]);
+            res.json({
+                registered: true,
+                message: 'Registration success!'
+            });
         } catch (err) {
             res.status(400).send({ error: err.message });
         };
@@ -52,7 +47,8 @@ router
                 if (isMatch) {
                     res.json({
                         loggedIn: true,
-                        username
+                        username,
+                        message: "Login successful"
                     });
                 } else {
                     res.json({
@@ -71,19 +67,35 @@ router
         };
     });
 
+const upLoad = multer({
+    limits: { fileSize: 2000000 },
+    fileFilter(req, file, cb) {
+        if (!file.originalname.match(/\.(jpg|jpeg|png)$/)) {
+            return cb(new Error('Please upload an image with png, jpg, or jpeg file extensions'));
+        };
+        cb(null, true);
+    }
+});
     // need to add foreign key in DB: userID
 router
     .route('/upload')
-    .post( async (req,res) => {
+    .post( upLoad.single('image'), async (req,res) => {
         try {
-            console.log(req.body.image);
-            // const {image, title, author, description} = req.body;
-            // const imageMod = await sharp(image).resize({ width: 800, height: 800 }).png().toBuffer();
-            // const newInsert = await pool.query(
-            //     "INSERT INTO imagework (image, title, author, description) VALUES ($1, $2, $3, $4) RETURNING *;",
-            //     [imageMod, title, author, description]
-            // );
-            // res.json(newInsert.rows[0]);
+            // receiving the data
+            const {buffer} = req.file;
+            const {title, author, description} = req.body;
+
+            // modifying image resolution & format
+            const imageMod = await sharp(buffer).resize({ width: 800, height: 800 }).png().toBuffer();
+
+            // insert into psql DB
+            const newInsert = await pool.query(
+                "INSERT INTO imagework (image, title, author, description) VALUES ($1, $2, $3, $4) RETURNING *;",
+                [imageMod, title, author, description]
+            );
+
+            // sending back the data 
+            res.json(newInsert.rows[0]);
         } catch (err) {
             res.status(400).send({ error: err.message });
         };
@@ -107,5 +119,11 @@ router
             res.status(400).send({ error: err.message });
         };
     });
+
+
+// router
+//     .route('/profile')
+//     .post()
+
 
 module.exports = router;

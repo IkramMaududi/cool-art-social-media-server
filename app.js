@@ -7,7 +7,7 @@ const app = express();
 //middleware
 app.use(cors()); //cors is used to allow request from backend to frontend 
 app.use(express.json());
-app.use(express.urlencoded());
+app.use(express.urlencoded({ extended:true }));
 
 app.use('/user', userRoute);
 
