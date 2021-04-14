@@ -19,29 +19,24 @@ CREATE TABLE imageart (
     posting_date date default current_date
 );
 
--- this table hasn't created yet
-CREATE TABLE profile (
-    id smallserial not null primary key,
-    username varchar(45) references users(username),
-    fullname varchar(100),
-    email varchar(100),
-    phone text,
-    age smallint,
-    birthdate date,
-    birthlocation text,
-    currentlocation text,
-    artstyle text,
-    gender varchar(10) check (gender = 'female' OR gender = 'male' or gender = 'other'),
-    bio text,
-    avatar bytea
-    -- everfilled boolean
-);
-
--- this table hasn't created yet
 CREATE TABLE play (
     id smallserial not null primary key,
     username varchar(45) references users(username),
     game VARCHAR(15) CHECK (game = 'Jan-Ken-Pon' OR game = 'Monster-Killer') not null,
     result json not null,
     play_date date default current_date
+);
+
+CREATE TABLE profile (
+    id smallserial not null primary key,
+    username varchar(45) references users(username),
+    fullname varchar(100),
+    email varchar(100),
+    phone varchar(50),
+    age smallint,
+    location varchar(70),
+    artstyle varchar(20) check (artstyle = 'traditional' OR artstyle = 'non-traditional'),
+    gender varchar(10) check (gender = 'female' OR gender = 'male' or gender = 'other'),
+    bio text,
+    avatar bytea
 );

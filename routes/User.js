@@ -20,7 +20,7 @@ router
             passwordHash = await bcrypt.hash(password,8);
             console.log(username, passwordHash);
             const newInsert = await pool.query(
-                "INSERT INTO users (username, password) VALUES ($1, $2) RETURNING *;",
+                "INSERT INTO users (username, password) VALUES ($1, $2);",
                 [username, passwordHash]
             );
             // console.log(newInsert.rows[0]);
@@ -82,45 +82,34 @@ router
         try {
             // receiving the data
             const {buffer} = req.file;
-            const {username, title, author, description} = req.body;
+            const {title, author, description} = req.body;
+            const {username} = req.headers;
 
-            // modifying image resolution & format
+            //* modifying image resolution & format
             const imageMod = await sharp(buffer).resize({ width: 800, height: 800 }).png().toBuffer();
 
-            // insert into psql DB
-            // if everything is provided
-            const newInsert = await pool.query(
-                "INSERT INTO imageart (username, image, title, author, description) VALUES ($1, $2, $3, $4, $5) RETURNING *;",
-                [username, imageMod, title, author, description]
-            );
-
-            /**
-             * if everything is included 
+            //* check which one of these cases below happens
+            if (!author && !description) {
                 const newInsert = await pool.query(
-                    "INSERT INTO imageart (username, image, title, author, description) VALUES ($1, $2, $3, $4, $5) RETURNING *;",
-                    [username, imageMod, title, author, description]
-                );
-
-             * else if author & description aren't included
-                const newInsert = await pool.query(
-                    "INSERT INTO imageart (username, image, title) VALUES ($1, $2, $3) RETURNING *;",
+                    "INSERT INTO imageart (username, image, title) VALUES ($1, $2, $3);",
                     [username, imageMod, title]
                 );
-
-             * else if only author isn't included
+            } else if (!author) {
                 const newInsert = await pool.query(
-                    "INSERT INTO imageart (username, image, title, author, description) VALUES ($1, $2, $3, $4, $5) RETURNING *;",
-                    [username, imageMod, title, author, description]
-                );
-
-
-             * else if only description isn't included
+                    "INSERT INTO imageart (username, image, title, description) VALUES ($1, $2, $3, $4);",
+                    [username, imageMod, title, description]
+                ); 
+            } else if (!description) {
                 const newInsert = await pool.query(
-                    "INSERT INTO imageart (username, image, title, author) VALUES ($1, $2, $3, $4) RETURNING *;",
+                    "INSERT INTO imageart (username, image, title, author) VALUES ($1, $2, $3, $4);",
                     [username, imageMod, title, author]
                 );
-             */
-
+            } else  {
+                const newInsert = await pool.query(
+                    "INSERT INTO imageart (username, image, title, author, description) VALUES ($1, $2, $3, $4, $5);",
+                    [username, imageMod, title, author, description]
+                ); 
+            };
             // sending back the data 
             // res.json(newInsert.rows[0]);
             res.json({
@@ -134,23 +123,29 @@ router
     .get( async (req,res) => {
         try {
             const {username} = req.headers;
-            // console.log(req.headers.username);
-            // console.log(typeof(req.headers.username))
             const findAll = await pool.query( 
                 "SELECT * FROM imageart WHERE username = ($1);", 
                 [username] 
             );
             if (findAll.rowCount) {
-                res.json(findAll.rows);
+                res.send({
+                    exist: true,
+                    data: findAll.rows,
+                    total: findAll.rowcount
+                });
+                // console.log(findAll.rows[0]);
             } else {
                 console.log('image not found');
-                res.end();
+                res.send({
+                    exist: false,
+                    data: null,
+                    total: null
+                });
             };
         } catch (err) {
             res.status(400).send({ error: err.message });
         };
     });
-
 
 
 
@@ -164,32 +159,110 @@ router
                 [username] 
             );
             if (findAll.rowCount) {
-                // send the data back
-                res.json(findAll.rows);
+                res.json({
+                    exist: true,
+                    data: findAll.rows
+                });
             } else {
                 console.log('profile not found');
-                res.end();
+                res.send({
+                    exist: false,
+                    data: null
+                });
             };
         } catch (err) {
             res.status(400).send({ error: err.message });
         };
-
     })
-    .post()
-    .patch();
+    .post( upLoad.single('avatar'), async(req, res) =>{
+        try {
+            //* taking in input values from FE react
+            const { buffer } = req.file;
+            const { fullname, age, email, phone, location, gender, artstyle, bio } = req.body;
+            const { username, profileFilled } = req.headers;
 
+            //* check whether the user has existing profile or not
+            if (!profileFilled) {
+                //* check which data are sent and save the data to DB accordingly
+                if (!buffer) {
+                    const createProfile = await pool.query(
+                        "INSERT INTO profile (username, fullname, age, email, phone, location, gender, artstyle, bio) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);",
+                        [username, fullname, age, email, phone, location, gender, artstyle, bio]
+                    );
+                } else {
+                    //* modifying image resolution & format
+                    const imageMod = await sharp(buffer).resize({ width: 800, height: 800 }).png().toBuffer();
+
+                    const createProfile = await pool.query(
+                        "INSERT INTO profile (username, fullname, age, email, phone, location, gender, artstyle, bio, avatar) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);",
+                        [username, fullname, age, email, phone, location, gender, artstyle, bio, imageMod]
+                    );
+                };
+                res.json({
+                    editProfile: true,
+                    message: 'Profile is created'
+                });
+            } else {
+                if (!buffer) {
+                    const updateProfile = await pool.query(
+                        "UPDATE profile SET fullname = $1, age = $2, email = $3, phone = $4, location = $5, gender = $6, artstyle = $7, bio = $8;",
+                        [fullname, age, email, phone, location, gender, artstyle, bio]
+                    );
+                } else {
+                    //* modifying image resolution & format
+                    const imageMod = await sharp(buffer).resize({ width: 800, height: 800 }).png().toBuffer();
+
+                    const updateProfile = await pool.query(
+                        "UPDATE profile SET fullname = $1, age = $2, email = $3, phone = $4, location = $5, gender = $6, artstyle = $7, bio = $8, avatar = $9;",
+                        [fullname, age, email, phone, location, gender, artstyle, bio, imageMod]
+                    );
+                };
+                res.json({
+                    editProfile: true,
+                    message: 'Profile is updated'
+                });
+            };
+        } catch (error) {
+            res.status(400).send({ error: err.message }); 
+        }
+    });
 
 
 router
     .route('/game')
+    .get( async (req,res) => {
+        try {
+            const {username} = req.headers;
+            const findAll = await pool.query( 
+                "SELECT * FROM play WHERE username = ($1);", 
+                [username] 
+            );
+            if (findAll.rowCount) {
+                res.json({
+                    exist: true,
+                    data: findAll.rows
+                });
+            } else {
+                console.log('game has never been played before');
+                res.send({
+                    exist: false,
+                    data: null
+                });
+            };
+        } catch (err) {
+            res.status(400).send({ error: err.message });
+        };
+    })
     .post( async(req, res) =>{
         try {
+            //* get the incoming data
             const result = req.body;
             const {username, game} = req.headers;
             console.log(result, username, game);
-            // get the value into database
+
+            //* insert the value into database
             const newInsert = await pool.query(
-                "INSERT INTO play (username, game, result) VALUES ($1, $2, $3) RETURNING *;",
+                "INSERT INTO play (username, game, result) VALUES ($1, $2, $3);",
                 [username, game, result]
             );
             res.json({
@@ -198,7 +271,7 @@ router
             });
         } catch (error) {
             res.status(400).send({ error: err.message }); 
-        }
+        };
     });
 
 
