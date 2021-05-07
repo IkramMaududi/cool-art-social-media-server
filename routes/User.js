@@ -26,10 +26,10 @@ router
             // console.log(newInsert.rows[0]);
             res.json({
                 registered: true,
-                message: 'Registration success!'
+                message: 'Sign Up Successful!'
             });
         } catch (err) {
-            res.status(400).send({ error: err.message });
+            res.status(400).send({ error: err.message}); 
         };
     });
 
@@ -48,7 +48,7 @@ router
                     res.json({
                         loggedIn: true,
                         username,
-                        message: "Login successful"
+                        message: "Sign In Successful"
                     });
                 } else {
                     res.json({
@@ -63,7 +63,7 @@ router
                     });
             };
         } catch (err) {
-            console.error(err.message);
+            res.status(400).send({ error: err.message}); 
         };
     });
 
@@ -117,7 +117,7 @@ router
                 message: 'Image upload success'
             });
         } catch (err) {
-            res.status(400).send({ error: err.message });
+            res.status(400).send({ error: err.message}); 
         };
     })
     .get( async (req,res) => {
@@ -143,7 +143,7 @@ router
                 });
             };
         } catch (err) {
-            res.status(400).send({ error: err.message });
+            res.status(400).send({ error: err.message}); 
         };
     });
 
@@ -171,7 +171,7 @@ router
                 });
             };
         } catch (err) {
-            res.status(400).send({ error: err.message });
+            res.status(400).send({ error: err.message}); 
         };
     })
     .post( upLoad.single('avatar'), async(req, res) =>{
@@ -179,10 +179,15 @@ router
             //* taking in input values from FE react
             const { buffer } = req.file;
             const { fullname, age, email, phone, location, gender, artstyle, bio } = req.body;
-            const { username, profileFilled } = req.headers;
+            const { username } = req.headers;
 
             //* check whether the user has existing profile or not
-            if (!profileFilled) {
+            const profile = await pool.query(
+                "SELECT * FROM profile WHERE username = $1;", 
+                [username]
+            );
+            //* if it doesn't have a profile then make a new one, else update the existing one
+            if (!profile.rowCount) {
                 //* check which data are sent and save the data to DB accordingly
                 if (!buffer) {
                     const createProfile = await pool.query(
@@ -205,25 +210,25 @@ router
             } else {
                 if (!buffer) {
                     const updateProfile = await pool.query(
-                        "UPDATE profile SET fullname = $1, age = $2, email = $3, phone = $4, location = $5, gender = $6, artstyle = $7, bio = $8;",
-                        [fullname, age, email, phone, location, gender, artstyle, bio]
+                        "UPDATE profile SET fullname = $1, age = $2, email = $3, phone = $4, location = $5, gender = $6, artstyle = $7, bio = $8 WHERE username = $9;",
+                        [fullname, age, email, phone, location, gender, artstyle, bio, username]
                     );
                 } else {
                     //* modifying image resolution & format
                     const imageMod = await sharp(buffer).resize({ width: 800, height: 800 }).png().toBuffer();
 
                     const updateProfile = await pool.query(
-                        "UPDATE profile SET fullname = $1, age = $2, email = $3, phone = $4, location = $5, gender = $6, artstyle = $7, bio = $8, avatar = $9;",
-                        [fullname, age, email, phone, location, gender, artstyle, bio, imageMod]
+                        "UPDATE profile SET fullname = $1, age = $2, email = $3, phone = $4, location = $5, gender = $6, artstyle = $7, bio = $8, avatar = $9 WHERE username = $10;",
+                        [fullname, age, email, phone, location, gender, artstyle, bio, imageMod, username]
                     );
                 };
                 res.json({
                     editProfile: true,
                     message: 'Profile is updated'
                 });
-            };
-        } catch (error) {
-            res.status(400).send({ error: err.message }); 
+            }
+        } catch (err) {
+            res.status(400).send({ error: err.message}); 
         }
     });
 
@@ -250,7 +255,7 @@ router
                 });
             };
         } catch (err) {
-            res.status(400).send({ error: err.message });
+            res.status(400).send({ error: err.message}); 
         };
     })
     .post( async(req, res) =>{
@@ -269,8 +274,8 @@ router
                 insertGameResult: true,
                 message: 'Game result successfully inserted'
             });
-        } catch (error) {
-            res.status(400).send({ error: err.message }); 
+        } catch (err) {
+            res.status(400).send({ error: err.message}); 
         };
     });
 
