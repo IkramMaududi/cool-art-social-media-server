@@ -2,7 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const sharp = require('sharp');
 const multer = require('multer');
-const pool = require('../db/pool');
+const client = require('../db/connection');
 
 const router = express.Router();
 
@@ -18,8 +18,9 @@ router
         try {
             const {username, password} = req.body;
             passwordHash = await bcrypt.hash(password,8);
-            console.log(username, passwordHash);
-            const newInsert = await pool.query(
+            // console.log(username, passwordHash);
+            await client.connect();
+            const newInsert = await client.query(
                 "INSERT INTO users (username, password) VALUES ($1, $2);",
                 [username, passwordHash]
             );
@@ -28,8 +29,9 @@ router
                 registered: true,
                 message: 'Sign Up Successful!'
             });
+            await client.end();
         } catch (err) {
-            res.status(400).send({ error: err.message}); 
+            res.status(400).send({error: err.message}); 
         };
     });
 
@@ -38,7 +40,8 @@ router
     .post( async (req,res) => {
         try {
             const {username, password} = req.body;
-            const user = await pool.query(
+            await client.connect();
+            const user = await client.query(
                 "SELECT * FROM users WHERE username = $1;", 
                 [username]
             );
@@ -62,6 +65,7 @@ router
                         message: "User doesn't exist"
                     });
             };
+            await client.end();
         } catch (err) {
             res.status(400).send({ error: err.message}); 
         };
@@ -89,23 +93,24 @@ router
             const imageMod = await sharp(buffer).resize({ width: 800, height: 800 }).png().toBuffer();
 
             //* check which one of these cases below happens
+            await client.connect();
             if (!author && !description) {
-                const newInsert = await pool.query(
+                const newInsert = await client.query(
                     "INSERT INTO imageart (username, image, title) VALUES ($1, $2, $3);",
                     [username, imageMod, title]
                 );
             } else if (!author) {
-                const newInsert = await pool.query(
+                const newInsert = await client.query(
                     "INSERT INTO imageart (username, image, title, description) VALUES ($1, $2, $3, $4);",
                     [username, imageMod, title, description]
                 ); 
             } else if (!description) {
-                const newInsert = await pool.query(
+                const newInsert = await client.query(
                     "INSERT INTO imageart (username, image, title, author) VALUES ($1, $2, $3, $4);",
                     [username, imageMod, title, author]
                 );
             } else  {
-                const newInsert = await pool.query(
+                const newInsert = await client.query(
                     "INSERT INTO imageart (username, image, title, author, description) VALUES ($1, $2, $3, $4, $5);",
                     [username, imageMod, title, author, description]
                 ); 
@@ -116,6 +121,7 @@ router
                 uploadArtWork: true,
                 message: 'Image upload success'
             });
+            await client.end();
         } catch (err) {
             res.status(400).send({ error: err.message}); 
         };
@@ -123,7 +129,8 @@ router
     .get( async (req,res) => {
         try {
             const {username} = req.headers;
-            const findAll = await pool.query( 
+            await client.connect();
+            const findAll = await client.query( 
                 "SELECT * FROM imageart WHERE username = ($1);", 
                 [username] 
             );
@@ -142,6 +149,7 @@ router
                     total: null
                 });
             };
+            await client.end();
         } catch (err) {
             res.status(400).send({ error: err.message}); 
         };
@@ -154,7 +162,8 @@ router
     .get( async (req,res) => {
         try {
             const {username} = req.headers;
-            const findAll = await pool.query( 
+            await client.connect();
+            const findAll = await client.query( 
                 "SELECT * FROM profile WHERE username = ($1);", 
                 [username] 
             );
@@ -170,6 +179,7 @@ router
                     data: null
                 });
             };
+            await client.end();
         } catch (err) {
             res.status(400).send({ error: err.message}); 
         };
@@ -182,7 +192,8 @@ router
             const { username } = req.headers;
 
             //* check whether the user has existing profile or not
-            const profile = await pool.query(
+            await client.connect();
+            const profile = await client.query(
                 "SELECT * FROM profile WHERE username = $1;", 
                 [username]
             );
@@ -190,7 +201,7 @@ router
             if (!profile.rowCount) {
                 //* check which data are sent and save the data to DB accordingly
                 if (!buffer) {
-                    const createProfile = await pool.query(
+                    const createProfile = await client.query(
                         "INSERT INTO profile (username, fullname, age, email, phone, location, gender, artstyle, bio) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);",
                         [username, fullname, age, email, phone, location, gender, artstyle, bio]
                     );
@@ -198,7 +209,7 @@ router
                     //* modifying image resolution & format
                     const imageMod = await sharp(buffer).resize({ width: 800, height: 800 }).png().toBuffer();
 
-                    const createProfile = await pool.query(
+                    const createProfile = await client.query(
                         "INSERT INTO profile (username, fullname, age, email, phone, location, gender, artstyle, bio, avatar) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);",
                         [username, fullname, age, email, phone, location, gender, artstyle, bio, imageMod]
                     );
@@ -209,7 +220,7 @@ router
                 });
             } else {
                 if (!buffer) {
-                    const updateProfile = await pool.query(
+                    const updateProfile = await client.query(
                         "UPDATE profile SET fullname = $1, age = $2, email = $3, phone = $4, location = $5, gender = $6, artstyle = $7, bio = $8 WHERE username = $9;",
                         [fullname, age, email, phone, location, gender, artstyle, bio, username]
                     );
@@ -217,7 +228,7 @@ router
                     //* modifying image resolution & format
                     const imageMod = await sharp(buffer).resize({ width: 800, height: 800 }).png().toBuffer();
 
-                    const updateProfile = await pool.query(
+                    const updateProfile = await client.query(
                         "UPDATE profile SET fullname = $1, age = $2, email = $3, phone = $4, location = $5, gender = $6, artstyle = $7, bio = $8, avatar = $9 WHERE username = $10;",
                         [fullname, age, email, phone, location, gender, artstyle, bio, imageMod, username]
                     );
@@ -226,7 +237,8 @@ router
                     editProfile: true,
                     message: 'Profile is updated'
                 });
-            }
+            };
+            await client.end();
         } catch (err) {
             res.status(400).send({ error: err.message}); 
         }
@@ -238,7 +250,8 @@ router
     .get( async (req,res) => {
         try {
             const {username} = req.headers;
-            const findAll = await pool.query( 
+            await client.connect();
+            const findAll = await client.query( 
                 "SELECT * FROM play WHERE username = ($1);", 
                 [username] 
             );
@@ -254,6 +267,7 @@ router
                     data: null
                 });
             };
+            await client.end();
         } catch (err) {
             res.status(400).send({ error: err.message}); 
         };
@@ -263,10 +277,11 @@ router
             //* get the incoming data
             const result = req.body;
             const {username, game} = req.headers;
-            console.log(result, username, game);
+            // console.log(result, username, game);
 
             //* insert the value into database
-            const newInsert = await pool.query(
+            await client.connect();
+            const newInsert = await client.query(
                 "INSERT INTO play (username, game, result) VALUES ($1, $2, $3);",
                 [username, game, result]
             );
@@ -274,6 +289,7 @@ router
                 insertGameResult: true,
                 message: 'Game result successfully inserted'
             });
+            await client.end();
         } catch (err) {
             res.status(400).send({ error: err.message}); 
         };

@@ -1,6 +1,5 @@
-CREATE DATABASE socialmedia;
-
-\c socialmedia
+-- CREATE DATABASE socialmedia;
+-- \c socialmedia
 
 CREATE TABLE users (
     id serial not null primary key,
