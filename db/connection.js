@@ -1,5 +1,5 @@
-// const {Pool} = require("pg");
-const {Client} = require("pg");
+const {Pool} = require("pg");
+// const {Client} = require("pg");
 
 // //* this is for local environment, otherwise comment this below
 // const pool = new Pool ({
@@ -11,11 +11,8 @@ const {Client} = require("pg");
 // });
 
 //* this is for production environment, otherwise comment this below
-const client = new Client({
-    connectionString: process.env.DATABASE_URL,
-    ssl: {
-        rejectUnauthorized: false
-    }
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL
 });
 
-module.exports = client;
+module.exports = pool;

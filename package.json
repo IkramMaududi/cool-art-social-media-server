@@ -3,12 +3,16 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "engines": {
+    "node": "15.14.0",
+    "npm": "7.7.6"
+  },
   "scripts": {
     "start": "node index.js",
     "dev": "env-cmd -f ./config/dev.env nodemon index.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "Ikram Maududi",
   "license": "ISC",
   "dependencies": {
     "bcryptjs": "^2.4.3",
