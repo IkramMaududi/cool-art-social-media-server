@@ -16,13 +16,13 @@ router
     .route('/register')
     .post( async (req,res) => {
         try {
-            const client = await pool.connect();
             const {username, password} = req.body;
-            const passwordHash = await bcrypt.hash(password,8);
+            const client = await pool.connect();
+            // const passwordHash = await bcrypt.hash(password,8);
             // console.log(username, passwordHash);
             const newInsert = await client.query(
                 "INSERT INTO users (username, password) VALUES ($1, $2);",
-                [username, passwordHash]
+                [username, password]
             );
             // console.log(newInsert.rows[0]);
             res.json({
