@@ -24,15 +24,11 @@ router
                 "INSERT INTO users (username, password) VALUES ($1, $2);",
                 [username, passwordHash]
             );
-            // console.log(newInsert.rows[0]);
             res.json({
                 registered: true,
                 message: 'Sign Up Successful!'
             });
             client.release();
-            // res.json({
-            //     username, passwordHash
-            // })
         } catch (err) {
             res.status(400).send({error: err.message}); 
         };
