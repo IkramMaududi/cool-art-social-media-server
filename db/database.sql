@@ -3,8 +3,8 @@
 
 CREATE TABLE users (
     id serial not null primary key,
-    username varchar(45) not null,
-    password varchar(45) not null, 
+    username varchar(80) not null,
+    password varchar(200) not null, 
     unique (username)
 );
 
