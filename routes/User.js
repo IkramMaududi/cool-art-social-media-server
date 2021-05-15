@@ -17,19 +17,22 @@ router
     .post( async (req,res) => {
         try {
             const {username, password} = req.body;
-            const client = await pool.connect();
-            // const passwordHash = await bcrypt.hash(password,8);
+            // const client = await pool.connect();
+            const passwordHash = await bcrypt.hash(password,8);
             // console.log(username, passwordHash);
-            const newInsert = await client.query(
-                "INSERT INTO users (username, password) VALUES ($1, $2);",
-                [username, password]
-            );
+            // const newInsert = await client.query(
+            //     "INSERT INTO users (username, password) VALUES ($1, $2);",
+            //     [username, password]
+            // );
             // console.log(newInsert.rows[0]);
+            // res.json({
+            //     registered: true,
+            //     message: 'Sign Up Successful!'
+            // });
+            // client.release();
             res.json({
-                registered: true,
-                message: 'Sign Up Successful!'
-            });
-            client.release();
+                username, passwordHash
+            })
         } catch (err) {
             res.status(400).send({error: err.message}); 
         };
