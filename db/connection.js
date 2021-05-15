@@ -12,7 +12,10 @@ const {Pool} = require("pg");
 
 //* this is for production environment, otherwise comment this below
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+        rejectUnauthorized: false
+    }
 });
 
 module.exports = pool;
